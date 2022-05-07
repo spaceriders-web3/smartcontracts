@@ -1,0 +1,58 @@
+
+sp = await SpaceRiders.deployed()
+sp.addBnbLiquidity("100000000000000000000000", {value: web3.utils.toWei("1", "ether")})
+sp.purchasingPower(accounts[0])
+a = await sp.balanceOf(sp.address)
+
+
+// start blockscout:
+COIN=ETH \
+ETHEREUM_JSONRPC_VARIANT=ganache \
+ETHEREUM_JSONRPC_HTTP_URL=http://127.0.0.1:7545 \
+ETHEREUM_JSONRPC_WS_URL=ws://127.0.0.1:7545 \
+make start
+
+// send eth
+web3.eth.sendTransaction({to: "0x03545A3A834A0837aac22eDAE92c0Ed1435F144b", from:accounts[3], value: web3.utils.toWei('10')})
+//ethers: 
+[owner, addr1] = await ethers.getSigners();
+const params = { to: "0x03545A3A834A0837aac22eDAE92c0Ed1435F144b", value: ethers.utils.parseUnits("10", "ether").toHexString()};
+const txHash = await owner.sendTransaction(params);
+
+let balance = await web3.eth.getBalance(instance.address)
+
+// eth balance
+web3.eth.getBalance(spbb.address)
+
+
+sp = await SpaceRiders.deployed();
+spbb = await SpaceRidersBuyBack.deployed();
+spbb.buyBack()
+sp.addBnbLiquidity("100000000000000000000000", {value: web3.utils.toWei("5", "ether")})
+
+sprp = await SpaceRidersRewardPool.deployed();
+
+spg.togglePlanetTrading({v: 27, r: "0xbcb48ab70a93b6ff6b1a1ab4e7573f6a0df8cd6baed12ca4b839a30d6f79d7a7", s:"0x3e89a559358a66e2f6ddf7478073e2f8ebd6fd769b61ff36ef239852d94188e4"}, "ce101bb3-54f9-4b77-b198-8833b9aa0a3f", "4baac2a8-218f-48b9-a951-daebd4d109ce", false, {value: web3.utils.toWei("0.025", "ether")})
+
+spg.fusionPlanet({v: 27, r: "0x2f14fc1bca26e9991615dfcb8fe5d39c20964bfea6e9114dec411de8a2c0cb30", s:"0x4783520bd6eaf1efc3e7802517a111c9b0f5b8ad1d238384eabb54d7c8a8e9cc"}, "61c1aeec-a33b-4548-8a3b-f271e8896e39", "c86708d2-56b3-42d5-bd2b-1a8236f37cd0", "0","81f80cbf-16d0-4d27-afb0-218e1b54bea7", "http://asd.es", {value: web3.utils.toWei("0.025", "ether")})
+function fusionPlanet(
+    OB.signatureData calldata sD,
+    string calldata burnPlanetGuid1,
+    string calldata burnPlanetGuid2,
+    uint256 tokenPrice,
+    string calldata newPlanetGuid,
+    string calldata newTokenURI
+) 
+
+
+
+
+// router:
+r.addLiquidity("0xe59Aa7e1aF5Bab43e3d9ff3F77b605f5dA9Ae693", "0x08E6E920e0F88b7FfDe6bDA2d44357Abb2b7b24C", "10000000000000000000000", "1000000000000000000000", 0, 0, accounts[0], `${Date.now()}`, {from: accounts[0]})
+
+// give permissions to sp contract to spend busd for given wallet
+s.addBnbLiquidity("0x4BAD0d230d5FD56ab472F7F2Ecde4eE2E353c6C3", "1000000000000000000000", "1000000000000000000000")
+
+
+
+move router to spr folder to debug easier

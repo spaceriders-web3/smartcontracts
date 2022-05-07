@@ -1,0 +1,37 @@
+account_id: 8317d029-0acb-434a-84d7-9d2fd34607f0
+exports:
+  local:
+    chain_config:
+      berlin_block: 0
+      byzantium_block: 0
+      constantinople_block: 0
+      eip150_block: 0
+      eip150_hash: "0x0000000000000000000000000000000000000000000000000000000000000000"
+      eip155_block: 0
+      eip158_block: 0
+      homestead_block: 0
+      istanbul_block: 0
+      london_block: 0
+      petersburg_block: 0
+    chain_id: 31337
+    forked_network: ""
+    project_slug: redigaffi/project
+    protocol: ""
+    rpc_address: 127.0.0.1:8545
+  testnet:
+    chain_config:
+      byzantium_block: 0
+      constantinople_block: 0
+      eip150_block: 0
+      eip150_hash: "0x0000000000000000000000000000000000000000000000000000000000000000"
+      eip155_block: 0
+      eip158_block: 0
+      homestead_block: 0
+      istanbul_block: 0
+      petersburg_block: 0
+    forked_network: Binance
+    project_slug: redigaffi/project
+    protocol: ""
+    rpc_address: data-seed-prebsc-1-s1.binance.org:8545
+project_slug: project
+provider: Hardhat
