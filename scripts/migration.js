@@ -16,6 +16,7 @@ async function deployAbis(networkName, smartContracts) {
     "PlanetNft.sol": "PlanetNft.json",
     "SpaceRiders.sol": "SpaceRiders.json",
     "SpaceRidersGame.sol": "SpaceRidersGame.json",
+    "TicketNft.sol": "TicketNft.json"
     //"SpaceRidersRewardPool.sol": "SpaceRidersRewardPool.json"
   }
 
@@ -23,6 +24,7 @@ async function deployAbis(networkName, smartContracts) {
     "PlanetNft.json": "SpaceRiderNFT.json",
     "SpaceRiders.json": "Spaceriders.json",
     "SpaceRidersGame.json": "SpaceRidersGame.json",
+    "TicketNft.json": "TicketNft.json",
     //"SpaceRidersRewardPool.json"
   }
 
@@ -72,6 +74,7 @@ async function main() {
   let busdAddress = "";
   let routerAddress = "";
   let factoryAddress = "";
+  let ticketNftAddress = "";
 
   if (networkName === "testnet") {
     routerAddress = "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3";
@@ -99,6 +102,20 @@ async function main() {
     const Router = await PancakeRouterV2.deploy(pancakeFactory.address, we.address, initCode);
     const r = await Router.deployed();
     routerAddress = r.address;
+  }
+
+  // Ticket nft
+  if (networkName !== "mainnet") {
+    const TicketNft = await hre.ethers.getContractFactory("TicketNft");
+    const ticketNft = await TicketNft.deploy();
+
+    await ticketNft.deployed();
+    const accounts = await hre.ethers.getSigners();
+    const acct = accounts[0].address;
+
+    await ticketNft.mintTicket(acct,false,0,1800);
+
+    ticketNftAddress = ticketNft.address;
   }
 
   const OnlyBackend = await hre.ethers.getContractFactory("OnlyBackend");
@@ -186,6 +203,11 @@ async function main() {
           busdAddress
         ],
       });
+
+      await hre.run("verify:verify", {
+        address: ticketNftAddress,
+        constructorArguments: [],
+      });
   
       await hre.run("verify:verify", {
         address: sprg.address,
@@ -203,11 +225,14 @@ async function main() {
     
   }
   
-  const sma = {
+  let sma = {
     SPACERIDERS_TOKEN_CONTRACT: spr.address,
     SPACERIDERS_GAME_CONTRACT: sprg.address,
     SPACERIDERS_NFT_CONTRACT: pnft.address
   };
+
+  sma.SPACERIDERS_TICKET_NFT_CONTRACT = ticketNftAddress;
+
 
   str = `
   ${networkName}:
@@ -216,9 +241,14 @@ async function main() {
   "SPACERIDERS_TOKEN_CONTRACT": ${spr.address},
   "SPACERIDERS_GAME_CONTRACT": ${sprg.address},
   "SPACERIDERS_NFT_CONTRACT": ${pnft.address},
+  "SPACERIDERS_TICKET_NFT_CONTRACT": ${ticketNftAddress},
   ob.address: ${ob.address}
 }
 `;
+
+  if (networkName == "mainnet" || networkName == "testnet") {
+      console.log("DONT FORGET TO ADD LIQUIDITY DUMBASS!")
+  }
 
   console.log(str)
   deployAbis(networkName, sma);

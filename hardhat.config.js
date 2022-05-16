@@ -36,7 +36,7 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200
+        runs: 400
       }
     }
   },
@@ -56,7 +56,7 @@ module.exports = {
     testnet: {
       url: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
       chainId: 97,
-      gas: 6721975,
+      gas: 9721975,
       accounts: [`934a61e49cdf8fdf94230b6a451bfa1cbc6c00dec5da6114c37af8ebc0619e2d`] // ends in biea
     }
 	},

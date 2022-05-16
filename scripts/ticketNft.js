@@ -14,23 +14,27 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  const TicketNft = await hre.ethers.getContractFactory("TicketNft");
+  const ticketNft = await TicketNft.deploy();
 
-  await greeter.deployed();
+  await ticketNft.deployed();
 
-  await hre.tenderly.persistArtifacts({
-    name: "Greeter",
-    address: greeter.address,
-  })
+  const accounts = await hre.ethers.getSigners();
+  const acct = accounts[0].address;
 
-  await hre.tenderly.push({
-    name: "Greeter",
-    address: greeter.address,
-  })
+  await ticketNft.mintTicket(
+    acct,
+    false,
+    0,
+    86000,
+  );
+  
+  await hre.run("verify:verify", {
+    address: ticketNft.address,
+    constructorArguments: [],
+  });
 
-
-  console.log("Greeter deployed to:", greeter.address);
+  console.log(`TicketNFT deployed ${ticketNft.address}`)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
