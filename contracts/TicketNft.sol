@@ -12,8 +12,8 @@ struct TicketInfo {
     bool exists;
     bool lifeTime;
     uint256 generation;
-    uint256 expiryDate;
-    uint256 timeAccess;
+    uint256 expiryDate; // exact expiry date
+    uint256 timeAccess; // how much time the nft had (e.g 2 weeks)
     bool burned;
 }
 
@@ -34,16 +34,19 @@ contract TicketNft is ERC721URIStorage, Ownable {
     mapping(uint => GenerationInfo) public genInfo;
     
     mapping(address => uint[]) public walletTokenIds;
-    mapping(address => uint) public walletNftAmount;
 
     uint public royaltyFeeBips;
     address public royaltyReceiver;
 
     string public nftBasePath = "http://api.spaceriders.io:81/nft/ticket/";
 
+    bool private fusionInProgress;
+
     constructor() ERC721("SPRTicket", "SPRTICK") {
         royaltyFeeBips = 1000;
         royaltyReceiver = msg.sender;
+
+        fusionInProgress = false;
 
         // Genesis generation no limit
         genInfo[0] = GenerationInfo({
@@ -54,6 +57,7 @@ contract TicketNft is ERC721URIStorage, Ownable {
             mintedAmount: 0
         });
     }
+
 
     function changeNftBasePath(string calldata _nftBasePath) external onlyOwner {
         nftBasePath = _nftBasePath;
@@ -94,10 +98,7 @@ contract TicketNft is ERC721URIStorage, Ownable {
         uint256 tokenId
     ) internal override {
         
-        if (from != address(0)) {
-            walletNftAmount[from] -= 1;
-            walletNftAmount[to] += 1;
-
+        if (from != address(0) && !fusionInProgress) {
             uint256[] memory toDelete = new uint256[](1);
             toDelete[0] = tokenId;
             
@@ -160,7 +161,6 @@ contract TicketNft is ERC721URIStorage, Ownable {
         
         genInfo[generation].mintedAmount += 1;
         walletTokenIds[recipient].push(newItemId);
-        walletNftAmount[recipient] += 1;
 
         _mint(recipient, newItemId);
         _setTokenURI(newItemId, string(abi.encodePacked(nftBasePath, Strings.toString(newItemId))));
@@ -185,17 +185,18 @@ contract TicketNft is ERC721URIStorage, Ownable {
             require(tokenIds.length == 2, "Need 2 for temporary access");
         }
         
-        //@TODO: check time is zero
+        fusionInProgress = true;
+
         for (uint i = 0; i < tokenIds.length; i++) {
             uint tokenId = tokenIds[i];
             require(byTokenIdIdData[tokenId].exists, "Dont exists");
+            require(block.timestamp >= byTokenIdIdData[tokenId].expiryDate, "Has not expired yet");
             require(!byTokenIdIdData[tokenId].burned, "Already burned");
             require(byTokenIdIdData[tokenId].owner == recipient, "Not owner");
             require(!byTokenIdIdData[tokenId].lifeTime, "Can't fusion lifetime tickets");
             require(tmp.generation == byTokenIdIdData[tokenId].generation, "Not same generation");
 
             byTokenIdIdData[tokenId].burned = true;
-            walletNftAmount[recipient] -= 1;
 
             _burn(tokenId);
         }
@@ -227,6 +228,8 @@ contract TicketNft is ERC721URIStorage, Ownable {
 
         _mint(recipient, newItemId);
         _setTokenURI(newItemId, string(abi.encodePacked(nftBasePath, Strings.toString(newItemId))));
+
+        fusionInProgress = false;
 
         return newItemId;
     }

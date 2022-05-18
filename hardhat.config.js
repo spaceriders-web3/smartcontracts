@@ -58,11 +58,19 @@ module.exports = {
       chainId: 97,
       gas: 9721975,
       accounts: [`934a61e49cdf8fdf94230b6a451bfa1cbc6c00dec5da6114c37af8ebc0619e2d`] // ends in biea
+    },
+    mainnet: {
+      url: 'https://bsc-dataseed.binance.org/',
+      chainId: 56,
+      gas: 9721975,
+      gasPrice: 6,
+      accounts: [`934a61e49cdf8fdf94230b6a451bfa1cbc6c00dec5da6114c37af8ebc0619e2d`] // ends in biea
     }
 	},
   etherscan: {
     apiKey: {
       bscTestnet: "QAXUN78JC5HZMQ8DEFED88S3KW9TX9UF22",
+      bsc: "QAXUN78JC5HZMQ8DEFED88S3KW9TX9UF22",
     }
   }
 };

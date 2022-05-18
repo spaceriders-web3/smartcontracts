@@ -16,7 +16,7 @@ async function deployAbis(networkName, smartContracts) {
     "PlanetNft.sol": "PlanetNft.json",
     "SpaceRiders.sol": "SpaceRiders.json",
     "SpaceRidersGame.sol": "SpaceRidersGame.json",
-    "TicketNft.sol": "TicketNft.json"
+    //"TicketNft.sol": "TicketNft.json"
     //"SpaceRidersRewardPool.sol": "SpaceRidersRewardPool.json"
   }
 
@@ -24,7 +24,7 @@ async function deployAbis(networkName, smartContracts) {
     "PlanetNft.json": "SpaceRiderNFT.json",
     "SpaceRiders.json": "Spaceriders.json",
     "SpaceRidersGame.json": "SpaceRidersGame.json",
-    "TicketNft.json": "TicketNft.json",
+    //"TicketNft.json": "TicketNft.json",
     //"SpaceRidersRewardPool.json"
   }
 
