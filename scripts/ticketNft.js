@@ -24,9 +24,9 @@ async function main() {
 
   await ticketNft.mintTicket(
     acct,
-    false,
+    true,
     0,
-    86000,
+    0,
   );
   
   await hre.run("verify:verify", {

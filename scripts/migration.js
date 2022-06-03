@@ -112,8 +112,12 @@ async function main() {
     await ticketNft.deployed();
     const accounts = await hre.ethers.getSigners();
     const acct = accounts[0].address;
-
-    await ticketNft.mintTicket(acct,false,0,1800);
+    await ticketNft.mintTicket(
+      acct,
+      true,
+      0,
+      0,
+    );
 
     ticketNftAddress = ticketNft.address;
   }
@@ -238,11 +242,11 @@ async function main() {
   ${networkName}:
   \n
 {
-  "SPACERIDERS_TOKEN_CONTRACT": ${spr.address},
-  "SPACERIDERS_GAME_CONTRACT": ${sprg.address},
-  "SPACERIDERS_NFT_CONTRACT": ${pnft.address},
-  "SPACERIDERS_TICKET_NFT_CONTRACT": ${ticketNftAddress},
-  ob.address: ${ob.address}
+  "SPACERIDERS_TOKEN_CONTRACT": "${spr.address}",
+  "SPACERIDERS_GAME_CONTRACT": "${sprg.address}",
+  "SPACERIDERS_NFT_CONTRACT": "${pnft.address}",
+  "SPACERIDERS_TICKET_NFT_CONTRACT": "${ticketNftAddress}",
+  "ROUTER_CONTRACT": "${routerAddress}"
 }
 `;
 

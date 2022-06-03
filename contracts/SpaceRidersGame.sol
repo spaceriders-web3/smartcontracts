@@ -189,15 +189,36 @@ contract SpaceRidersGame is Ownable {
             block.timestamp > userStaking[planetId].timeRelease,
             "Staking period is not finished."
         );
+        
         require(userStaking[planetId].owner == msg.sender, "Not your staking.");
         require(msg.value == bnbFee, "Not send enough BNB's");
         
         feeWallet.transfer(bnbFee);
 
+        userStaking[planetId].time = 0;
+        userStaking[planetId].timeRelease = 0;
+        userStaking[planetId].planetId = "";
+        userStaking[planetId].tier = "";
+        userStaking[planetId].amount = 0;
+        userStaking[planetId].staked = false;
+        
+        address receiver = userStakingLpInfo[planetId].user;
+        uint256 lpAmount = userStakingLpInfo[planetId].lpAmount;
+        uint256 tradeableBalance = userStakingLpInfo[planetId].tradeableBalance;
+        uint256 playableBalance = userStakingLpInfo[planetId].playableBalance;
+        address router = userStakingLpInfo[planetId].router;
+        address pair = userStakingLpInfo[planetId].pair;
+        
+        userStakingLpInfo[planetId].lpAmount = 0;
+        userStakingLpInfo[planetId].tradeableBalance = 0;
+        userStakingLpInfo[planetId].playableBalance = 0;
+        userStakingLpInfo[planetId].router = address(0);
+        userStakingLpInfo[planetId].pair = address(0);
+
         SpaceRiders sp = getSpaceRiders();
-        address r = sp.dexAddresses(0);
-        IERC20(userStakingLpInfo[planetId].pair).transfer(address(sp), userStakingLpInfo[planetId].lpAmount);
-        sp.userRemoveLiquidity(r, userStakingLpInfo[planetId]);
+
+        IERC20(pair).transfer(address(sp), lpAmount);
+        sp.userRemoveLiquidity(router, pair, lpAmount, receiver, tradeableBalance, playableBalance);
     }
 
     function stakingRequestV2(
@@ -228,7 +249,7 @@ contract SpaceRidersGame is Ownable {
         userStaking[planetId] = UserStaking({
             owner: msg.sender,
             time: block.timestamp,
-            timeRelease: block.timestamp + timeRelease,
+            timeRelease: timeRelease,
             planetId: planetId,
             tier: tier,
             amount: amount,

@@ -339,13 +339,14 @@ contract SpaceRiders is Ownable, IERC20 {
         return maxUsdPurchasePerPlanetNft + extraPurchasingPower[_wallet];
     }
     
-    function userRemoveLiquidity(address routerAddr, UserAddLiquidity memory userAddLiquidity) external lockTheSwap onlySprGame {
+    function userRemoveLiquidity(address routerAddr, address pair,uint256 lpAmount, address receiver, uint256 tradeableBalance, uint256 playableBalance) external lockTheSwap onlySprGame {
+        
         IUniswapV2Router02 router = IUniswapV2Router02(routerAddr);
-        IERC20(userAddLiquidity.pair).approve(routerAddr, userAddLiquidity.lpAmount);
+        IERC20(pair).approve(routerAddr, lpAmount);
         (uint sprReceived, uint busdReceived) = router.removeLiquidity(
             address(this),
             busdAddress,
-            userAddLiquidity.lpAmount,
+            lpAmount,
             0, // slippage is unavoidable
             0, // slippage is unavoidable
             sprFundProxyAddress,
@@ -365,7 +366,7 @@ contract SpaceRiders is Ownable, IERC20 {
         console.log("totalSprBack %", totalSprBack);
 
         // Calculate difference from previous token amount
-        (uint256 newTradeableBalance, uint256 newPlayableBalance) = _recalculateNewBalance(totalSprBack, userAddLiquidity);
+        (uint256 newTradeableBalance, uint256 newPlayableBalance) = _recalculateNewBalance(totalSprBack, tradeableBalance, playableBalance);
         
         console.log("newTradeableBalance %", newTradeableBalance);
         console.log("newPlayableBalance %", newPlayableBalance);
@@ -375,15 +376,15 @@ contract SpaceRiders is Ownable, IERC20 {
         require((newTradeableBalance+newPlayableBalance) <= totalSprBack, "If you see this, its probably a bug");
 
         _balances[address(this)].tradeableBalance -= totalSprBack;
-        _balances[userAddLiquidity.user].tradeableBalance += newTradeableBalance;
-        _balances[userAddLiquidity.user].playableBalance += newPlayableBalance;
+        _balances[receiver].tradeableBalance += newTradeableBalance;
+        _balances[receiver].playableBalance += newPlayableBalance;
 
-        emit Transfer(address(this), userAddLiquidity.user, newTradeableBalance);
+        emit Transfer(address(this), receiver, newTradeableBalance);
     }
 
-    function _recalculateNewBalance(uint256 totalSprBack, UserAddLiquidity memory userAddLiquidity) private view returns(uint256 newTradeableBalance, uint256 newPlayableBalance) {
-        uint256 originalTradeableBalance = userAddLiquidity.tradeableBalance;
-        uint256 originalPlayableBalance = userAddLiquidity.playableBalance;
+    function _recalculateNewBalance(uint256 totalSprBack, uint256 tradeableBalance, uint256 playableBalance) private view returns(uint256 newTradeableBalance, uint256 newPlayableBalance) {
+        uint256 originalTradeableBalance = tradeableBalance;
+        uint256 originalPlayableBalance = playableBalance;
         uint256 originalTotalTokenAmount = originalTradeableBalance + originalPlayableBalance;
 
         if (totalSprBack == originalTotalTokenAmount) {

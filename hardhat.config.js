@@ -60,10 +60,10 @@ module.exports = {
       accounts: [`934a61e49cdf8fdf94230b6a451bfa1cbc6c00dec5da6114c37af8ebc0619e2d`] // ends in biea
     },
     mainnet: {
-      url: 'https://bsc-dataseed.binance.org/',
+      url: 'https://bsc-dataseed1.defibit.io/',
       chainId: 56,
-      gas: 9721975,
-      gasPrice: 6,
+      gasPrice: 7,
+      gas: 8721975,
       accounts: [`934a61e49cdf8fdf94230b6a451bfa1cbc6c00dec5da6114c37af8ebc0619e2d`] // ends in biea
     }
 	},
