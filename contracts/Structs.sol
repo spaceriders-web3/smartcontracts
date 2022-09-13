@@ -8,13 +8,15 @@ struct UserStaking {
     bool staked;
 }
 
-struct EnergyDeposit {
+struct Transaction {
     string guid;
     string planetId;
     address owner;
     uint256 createdTimestamp;
     uint256 amount;
     bool exists;
+    string txType;
+    uint256 fee;
 }
 
 struct PlanetData {
@@ -33,10 +35,8 @@ struct ConversionRequests {
 }
 
 struct UserAddLiquidity {
-    address user;
+    address wallet;
     uint256 lpAmount;
-    uint256 tradeableBalance;
-    uint256 playableBalance;
     address router;
     address pair;
 }

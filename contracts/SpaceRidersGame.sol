@@ -1,15 +1,14 @@
 pragma solidity >=0.6.6;
 
-import "./SpaceRiders.sol";
-import {UserStaking, EnergyDeposit, PlanetData, ConversionRequests, UserAddLiquidity} from "./Structs.sol";
+import "./BlackMatter.sol";
+import {UserStaking, Transaction, PlanetData, ConversionRequests, UserAddLiquidity} from "./Structs.sol";
 import "./PlanetNft.sol";
-import "./SpaceRidersRewardPool.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "hardhat/console.sol";
 
 import { OnlyBackend as OB } from "./Library/OnlyBackend.sol";
-//import { SafeMath } from "./Library/SafeMath.sol";
+import { SafeMath } from "./Library/SafeMath.sol";
 
 contract SpaceRidersGame is Ownable {
     using OB for address;
@@ -22,9 +21,8 @@ contract SpaceRidersGame is Ownable {
     address payable feeWallet;
 
     // Contract addresses
-    address payable spaceRiderTokenAddress;
+    address payable blackMatterTokenAddress;
     address spaceRidersPlanetNFT;
-    address spaceRidersRewardPoolAddress;
 
     // Backend API address to verify signatures 
     address public backendAddress;
@@ -32,11 +30,6 @@ contract SpaceRidersGame is Ownable {
     // Fixed TX BNB fee (for all IG transactions)
     uint256 public bnbFee = 0.0025 ether;
 
-    // Indirect IG Taxes
-    uint256 indirectBurn = 5;
-    uint256 indirectLp = 30;
-    uint256 indirectRewardPool = 50;
-    uint256 indirectTeam = 15;
     ////////// END GENERAL /////////////
 
     ////////// BENEFIT STAKING /////////////
@@ -59,14 +52,25 @@ contract SpaceRidersGame is Ownable {
     ////////// END BENEFIT STAKING /////////////
 
     ////////// ENERGY DEPOSITS /////////////
-    // Requested planets in creation
-    mapping(string => EnergyDeposit) public energyDeposits;
+    mapping(string => Transaction) public energyDeposits;
 
     // Mapping planet address to energy deposits guids
     mapping(string => string[]) public energyDepositsMap;
 
     bool enableEnergyDepositDeposits = true;
     ////////// END ENERGY DEPOSITS /////////////
+
+
+    ////////// BKM DEPOSITS /////////////
+    mapping(string => Transaction) public bkmTransactions;
+
+    // Mapping planet address to energy deposits guids
+    mapping(string => string[]) public bkmTransactionMap;
+
+    bool enableBkmDeposit = true;
+    bool enableBkmWithdraws = true;
+    uint256 bkmFee = 1;
+    ////////// END BKM DEPOSITS /////////////
 
     ////////// PLANET PURCHASES /////////////
 
@@ -82,34 +86,20 @@ contract SpaceRidersGame is Ownable {
 
     ////////// END PLANET PURCHASES /////////////
 
-    ////////// TOKEN MANAGEMENT /////////////
-    // Request GUID => ConversionRequests 
-    mapping(string => ConversionRequests) public conversions;
-    ////////// END TOKEN MANAGEMENT /////////////
-    
-    // claim id => bool
-    mapping(string => bool) public claimedExtraPurchasingPower;
-
     constructor(
-        address payable _spaceRiderTokenAddress,
+        address payable _blackMatterTokenAddress,
         address _spaceRidersPlanetNFT,
         address payable _feeWallet, 
-        address _backendAddress,
-        address _spaceRidersRewardPoolAddress
+        address _backendAddress
     ) {
-        spaceRiderTokenAddress = _spaceRiderTokenAddress;
+        blackMatterTokenAddress = _blackMatterTokenAddress;
         spaceRidersPlanetNFT = _spaceRidersPlanetNFT;
         feeWallet = _feeWallet;
         backendAddress = _backendAddress;
-        spaceRidersRewardPoolAddress = _spaceRidersRewardPoolAddress;
     }
 
-    function getSpaceRiders() private view returns (SpaceRiders) {
-        return SpaceRiders(spaceRiderTokenAddress);
-    }
-
-    function getSpaceRidersRewardPool() private view returns (SpaceRidersRewardPool) {
-        return SpaceRidersRewardPool(spaceRidersRewardPoolAddress);
+    function getBlackMatter() private view returns (BlackMatter) {
+        return BlackMatter(blackMatterTokenAddress);
     }
 
     ////////// GENERAL /////////////
@@ -124,51 +114,7 @@ contract SpaceRidersGame is Ownable {
     function setFeeWallet(address payable newFeeWallet) external onlyOwner {
         feeWallet = newFeeWallet;
     }
-
-    function setIndirectTax(uint256 newLp, uint256 newRp, uint256 newT, uint256 newB) external onlyOwner {
-        require((indirectLp+indirectRewardPool+indirectTeam+indirectBurn) == 100, "Total == 100");
-        indirectLp = newLp;
-        indirectRewardPool = newRp;
-        indirectTeam = newT;
-        indirectBurn = newB;
-    }
-
-    function applyIngameTax(uint256 tokenSent) private {
-        SpaceRiders sp = getSpaceRiders();
-        sp.transferFrom(msg.sender, address(this), tokenSent);
-
-        uint256 lpAmount = tokenSent.div(100).mul(indirectLp);
-        uint256 poolAmount = tokenSent.div(100).mul(indirectRewardPool);
-        uint256 teamAmount = tokenSent.div(100).mul(indirectTeam);
-        uint256 burnAmount = tokenSent.div(100).mul(indirectBurn);
-        
-        sp.transfer(spaceRiderTokenAddress, lpAmount);
-        sp.transfer(spaceRidersRewardPoolAddress, poolAmount);
-        sp.transfer(feeWallet, teamAmount);
-        sp.transfer(DEAD, burnAmount);
-    }
-    ////////// END GENERAL /////////////
-
-    function addPurchasingPower(uint256 _amount, string memory _claimReq, OB.signatureData calldata sD) payable external {
-        require(!claimedExtraPurchasingPower[_claimReq], "PP increase already claimed");
-        require(msg.value == bnbFee, "Not send enough BNB's");
-
-        feeWallet.transfer(bnbFee);
-        SpaceRiders sp = getSpaceRiders();
-        
-        bytes memory msgBytes = abi.encodePacked(
-            msg.sender,
-            _claimReq,
-            _amount
-        );
-
-        backendAddress.isMessageFromBackend(msgBytes, sD);
-
-        claimedExtraPurchasingPower[_claimReq] = true;
-        sp.addPurchasingPower(msg.sender, _amount);
-    }
-
-    ////////// BENEFIT STAKING /////////////
+    
     function setBenefitStakingPerformanceFeeBP(uint256 newFee)
         external
         onlyOwner
@@ -202,23 +148,19 @@ contract SpaceRidersGame is Ownable {
         userStaking[planetId].amount = 0;
         userStaking[planetId].staked = false;
         
-        address receiver = userStakingLpInfo[planetId].user;
+        address receiver = userStakingLpInfo[planetId].wallet;
         uint256 lpAmount = userStakingLpInfo[planetId].lpAmount;
-        uint256 tradeableBalance = userStakingLpInfo[planetId].tradeableBalance;
-        uint256 playableBalance = userStakingLpInfo[planetId].playableBalance;
         address router = userStakingLpInfo[planetId].router;
         address pair = userStakingLpInfo[planetId].pair;
         
         userStakingLpInfo[planetId].lpAmount = 0;
-        userStakingLpInfo[planetId].tradeableBalance = 0;
-        userStakingLpInfo[planetId].playableBalance = 0;
         userStakingLpInfo[planetId].router = address(0);
         userStakingLpInfo[planetId].pair = address(0);
 
-        SpaceRiders sp = getSpaceRiders();
+        BlackMatter sp = getBlackMatter();
 
         IERC20(pair).transfer(address(sp), lpAmount);
-        sp.userRemoveLiquidity(router, pair, lpAmount, receiver, tradeableBalance, playableBalance);
+        sp.userRemoveLiquidity(router, pair, lpAmount, receiver);
     }
 
     function stakingRequestV2(
@@ -226,26 +168,22 @@ contract SpaceRidersGame is Ownable {
         string calldata planetId,
         uint256 amount,
         string calldata tier,
-        uint256 timeRelease
+        uint256 timeRelease,
+        address router
     ) external payable { 
-        SpaceRiders sp = getSpaceRiders();
+        BlackMatter sp = getBlackMatter();
 
         require(benefitStakingEnabled, "Staking is not enabled.");
         require(!userStaking[planetId].staked, "Only 1 staking at once.");
         require(timeRelease > block.timestamp, "Time cant be less than current time");
-        require(sp.totalBalanceOf(msg.sender) >= amount, "Not enough tokens.");
+        require(sp.balanceOf(msg.sender) >= amount, "Not enough tokens.");
         require(msg.value == bnbFee, "Not send enough BNB's");
         feeWallet.transfer(bnbFee);
         
-        // test with huge differences in both PT & TT
-        uint256 fee = amount.mul(benefitStakingPerformanceFeeBP).div(10000);        
+        uint256 fee = amount * benefitStakingPerformanceFeeBP / 10000;        
         sp.transferFrom(msg.sender, feeWallet, fee);
-
-        //sp.transferFrom(msg.sender, address(this), amount);
-        //sp.transfer(spaceRiderTokenAddress, amount);
-        address r = sp.dexAddresses(0);
         
-        userStakingLpInfo[planetId] = sp.userAddLiquidity(msg.sender, r, amount);
+        userStakingLpInfo[planetId] = sp.userAddLiquidity(msg.sender, router, amount);
         userStaking[planetId] = UserStaking({
             owner: msg.sender,
             time: block.timestamp,
@@ -276,35 +214,144 @@ contract SpaceRidersGame is Ownable {
         string calldata guid,
         string calldata planetId
     ) external payable {
-        SpaceRiders sp = getSpaceRiders();
+        BlackMatter sp = getBlackMatter();
 
         require(
             enableEnergyDepositDeposits,
             "Depositing energy tokens is disabled"
         );
-        require(sp.totalBalanceOf(msg.sender) >= amount, "Not enough tokens.");
+        require(sp.balanceOf(msg.sender) >= amount, "Not enough tokens.");
         require(
             sp.allowance(msg.sender, address(this)) >= amount,
             "Approve transaction first"
         );
         require(msg.value == bnbFee, "Not send enough BNB's");
 
-        energyDeposits[guid] = EnergyDeposit({
+        energyDeposits[guid] = Transaction({
             guid: guid,
             owner: msg.sender,
             createdTimestamp: block.timestamp,
             amount: amount,
             planetId: planetId,
-            exists: true
+            exists: true,
+            txType: "deposit",
+            fee: 0
         });
 
         energyDepositsMap[planetId].push(guid);
-
-        applyIngameTax(amount);
+        sp.transferFrom(msg.sender, feeWallet, amount);
         feeWallet.transfer(bnbFee);
     }
 
     ////////// END ENERGY DEPOSITS /////////////
+
+    ////////// BKM DEPOSITS /////////////
+    function getBkmTransactionMapCount(string calldata guid)
+        external
+        view
+        returns (uint256)
+    {
+        return bkmTransactionMap[guid].length;
+    }
+
+    function toggleBkmDeposits(bool enable) external onlyOwner {
+        enableBkmDeposit = enable;
+    }
+
+    function toggleBkmWithdraws(bool enable) external onlyOwner {
+        enableBkmWithdraws = enable;
+    }
+    
+    function setBkmFee(uint _fee) external onlyOwner {
+        bkmFee = _fee;
+    }
+
+    function bkmDeposit(
+        uint256 amount,
+        string calldata guid,
+        string calldata planetId
+    ) external payable {
+        BlackMatter sp = getBlackMatter();
+
+        require(
+            enableBkmDeposit,
+            "Depositing is disabled"
+        );
+        require(sp.balanceOf(msg.sender) >= amount, "Not enough tokens.");
+        require(
+            sp.allowance(msg.sender, address(this)) >= amount,
+            "Approve transaction first"
+        );
+        require(msg.value == bnbFee, "Not send enough BNB's");
+
+        uint256 fee = amount / 100 * bkmFee;
+
+        bkmTransactions[guid] = Transaction({
+            guid: guid,
+            owner: msg.sender,
+            createdTimestamp: block.timestamp,
+            amount: amount,
+            planetId: planetId,
+            exists: true,
+            txType: "deposit",
+            fee: fee
+        });
+
+        bkmTransactionMap[planetId].push(guid);
+
+        feeWallet.transfer(bnbFee);
+        sp.transferFrom(msg.sender, address(this), amount);
+        sp.transfer(feeWallet, fee);
+    }
+
+
+    function bkmWithdraw(
+        uint256 amount,
+        string calldata guid,
+        string calldata planetId,
+        OB.signatureData calldata sD
+    ) external payable {
+        BlackMatter sp = getBlackMatter();
+
+        require(
+            enableBkmWithdraws,
+            "Withdraw is disabled"
+        );
+        
+        require(msg.value == bnbFee, "Not send enough BNB's");
+
+        uint256 fee = amount / 100 * bkmFee;
+
+        bkmTransactions[guid] = Transaction({
+            guid: guid,
+            owner: msg.sender,
+            createdTimestamp: block.timestamp,
+            amount: amount,
+            planetId: planetId,
+            exists: true,
+            txType: "withdraw",
+            fee: fee
+        });
+
+        bytes memory msgBytes = abi.encodePacked(
+            amount,
+            planetId,
+            msg.sender
+        );
+
+        backendAddress.isMessageFromBackend(
+            msgBytes,
+            sD
+        );
+
+        bkmTransactionMap[planetId].push(guid);
+
+        feeWallet.transfer(bnbFee);
+        sp.transfer(feeWallet, fee);
+        sp.transfer(msg.sender, amount-fee);
+    }
+
+    ////////// END BKM DEPOSITS /////////////
 
     ////////// PLANET /////////////
     function togglePlanetPurchases(bool enable) external onlyOwner {
@@ -325,7 +372,7 @@ contract SpaceRidersGame is Ownable {
         OB.signatureData calldata sD,
         string calldata tokenURI
     ) external payable {
-        SpaceRiders sp = getSpaceRiders();
+        BlackMatter sp = getBlackMatter();
         PlanetNft planetNft = PlanetNft(spaceRidersPlanetNFT);
         PlanetInfo memory pI = planetNft.getPlanetById(planetGuid);
 
@@ -336,7 +383,7 @@ contract SpaceRidersGame is Ownable {
             "Planet guid already exists"
         );
         require(
-            sp.totalBalanceOf(msg.sender) >= planetPrice,
+            sp.balanceOf(msg.sender) >= planetPrice,
             "Not enough tokens."
         );
         require(
@@ -360,7 +407,6 @@ contract SpaceRidersGame is Ownable {
             sD
         );
 
-        applyIngameTax(planetPrice);
         feeWallet.transfer(bnbFee);
         planetNft.mintNFT(msg.sender, planetGuid, tokenURI);
     }
@@ -406,7 +452,6 @@ contract SpaceRidersGame is Ownable {
         planetNft.burnPlanet(burnPlanetGuid1);
         planetNft.burnPlanet(burnPlanetGuid2);
 
-        applyIngameTax(tokenPrice);
         feeWallet.transfer(bnbFee);
         planetNft.mintNFT(msg.sender, newPlanetGuid, newTokenURI);
     }
@@ -442,30 +487,4 @@ contract SpaceRidersGame is Ownable {
         feeWallet.transfer(bnbFee);
     }
     ////////// END PLANET /////////////
-
-    ////////// TOKEN MANAGEMENT /////////////
-    function convertFromPrimaryResources(OB.signatureData calldata sD, string calldata id, uint256 tokens, address forAddress) external {
-        bytes memory msgBytes = abi.encodePacked(
-            id,
-            tokens,
-            forAddress
-        );
-
-        backendAddress.isMessageFromBackend(msgBytes, sD);
-        
-        require(!conversions[id].exists, "Request already exists");
-        require(msg.sender == forAddress, "Request not for you");
-
-        conversions[id] = ConversionRequests({
-            guid: id,
-            owner: msg.sender,
-            tokenAmount: tokens,
-            exists: true
-        });
-
-        getSpaceRidersRewardPool().giveReward(tokens);
-        getSpaceRiders().transfer(msg.sender, tokens);
-    }
-
-    ////////// END TOKEN MANAGEMENT /////////////
 }
