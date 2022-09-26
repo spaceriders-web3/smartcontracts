@@ -75,6 +75,7 @@ async function main() {
   let routerAddress = "";
   let factoryAddress = "";
   let ticketNftAddress = "";
+  let pairAddress = "";
 
   if (networkName === "testnet") {
     routerAddress = "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3";
@@ -130,17 +131,10 @@ async function main() {
   const planetnft = await Planetnft.deploy();
   const pnft = await planetnft.deployed();
 
-  const SpaceRiders = await hre.ethers.getContractFactory("SpaceRiders");
-  const spaceRiders = await SpaceRiders.deploy(pnft.address, busdAddress);
+  const SpaceRiders = await hre.ethers.getContractFactory("BlackMatter");
+  const spaceRiders = await SpaceRiders.deploy(busdAddress);
   const spr = await spaceRiders.deployed();
   spr.transfer(spr.address, "11000000000000000000");
-
-  const SpaceRidersRewardPool = await hre.ethers.getContractFactory("SpaceRidersRewardPool");
-  const spaceRidersRewardPool = await SpaceRidersRewardPool.deploy(spr.address);
-  const sprp = await spaceRidersRewardPool.deployed();
-
-  await spr.setSprRewardPoolAddress(sprp.address);
-  await spr.setWhitelistedAddresses(sprp.address, true);
 
   const SpaceRidersGame = await hre.ethers.getContractFactory("SpaceRidersGame", {
     libraries: {
@@ -148,18 +142,17 @@ async function main() {
     },
   });
 
-  const spaceRidersGame = await SpaceRidersGame.deploy(spr.address, pnft.address, accounts[0].address,accounts[0].address,sprp.address);
+  const spaceRidersGame = await SpaceRidersGame.deploy(spr.address, pnft.address, accounts[0].address, accounts[0].address);
   const sprg = await spaceRidersGame.deployed();
 
   await pnft.transferOwnership(sprg.address);
-  await sprp.transferOwnership(sprg.address)
-  await spr.setSprGameAddress(sprg.address);
+  await spr.setGameAddress(sprg.address);
 
-  const SprSwapper = await hre.ethers.getContractFactory("SprFundProxy");
+  const SprSwapper = await hre.ethers.getContractFactory("FundProxy");
   const sprSwapper = await SprSwapper.deploy();
   const sprsw = await sprSwapper.deployed();
   await sprsw.transferOwnership(spr.address);
-  await spr.setSprFundProxy(sprsw.address);
+  await spr.setFundProxy(sprsw.address);
 
   if (networkName === "local") {
     const FACTORY = await hre.ethers.getContractFactory("PancakeFactory");
@@ -172,15 +165,10 @@ async function main() {
     const b = await BUSD.attach(busdAddress)
     
     await b.mint(accounts[0].address, "5555500000000000000000000");
-    // test account
-    await b.mint("0x03545A3A834A0837aac22eDAE92c0Ed1435F144b", "5555500000000000000000000");
     await b.increaseAllowance(spr.address, "5555500000000000000000000");
-    await spr.addBnbLiquidity(r.address, "4500000000000000000000", "4500000000000000000000")
-  
-    const pairAddress = await f.getPair(spr.address, b.address);
-    await spr.addDex(r.address, pairAddress);
+    await spr.addBusdLiquidity(r.address, "4500000000000000000000", "4500000000000000000000")
 
-    await spr.setWhitelistedAddresses(sprg.address, true);
+    pairAddress = await f.getPair(spr.address, busdAddress);
   }
 
   const tenderlyContracts = [
@@ -220,7 +208,6 @@ async function main() {
           pnft.address,
           accounts[0].address,
           accounts[0].address,
-          sprp.address
         ],
       });
     } catch(e){
@@ -246,12 +233,14 @@ async function main() {
   "SPACERIDERS_GAME_CONTRACT": "${sprg.address}",
   "SPACERIDERS_NFT_CONTRACT": "${pnft.address}",
   "SPACERIDERS_TICKET_NFT_CONTRACT": "${ticketNftAddress}",
-  "ROUTER_CONTRACT": "${routerAddress}"
+  "ROUTER_CONTRACT": "${routerAddress}",
+  "BUSD_CONTRACT": "${busdAddress}",
+  "PAIR_CONTRACT": "${pairAddress}"
 }
 `;
 
   if (networkName == "mainnet" || networkName == "testnet") {
-      console.log("DONT FORGET TO ADD LIQUIDITY DUMBASS!")
+    console.log("DONT FORGET TO ADD LIQUIDITY DUMBASS!")
   }
 
   console.log(str)
