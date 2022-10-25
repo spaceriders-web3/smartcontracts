@@ -51,20 +51,10 @@ contract SpaceRidersGame is Ownable {
 
     ////////// END BENEFIT STAKING /////////////
 
-    ////////// ENERGY DEPOSITS /////////////
-    mapping(string => Transaction) public energyDeposits;
-
-    // Mapping planet address to energy deposits guids
-    mapping(string => string[]) public energyDepositsMap;
-
-    bool enableEnergyDepositDeposits = true;
-    ////////// END ENERGY DEPOSITS /////////////
-
-
     ////////// BKM DEPOSITS /////////////
     mapping(string => Transaction) public bkmTransactions;
 
-    // Mapping planet address to energy deposits guids
+    // Mapping planet address to bkm deposits guids
     mapping(string => string[]) public bkmTransactionMap;
 
     bool enableBkmDeposit = true;
@@ -195,55 +185,6 @@ contract SpaceRidersGame is Ownable {
         });
     }
     ////////// END BENEFIT STAKING /////////////
-
-    ////////// ENERGY DEPOSITS /////////////
-    function getEnergyDepositsMapCount(string calldata guid)
-        external
-        view
-        returns (uint256)
-    {
-        return energyDepositsMap[guid].length;
-    }
-
-    function toggleEnergyDeposits(bool enable) external onlyOwner {
-        enableEnergyDepositDeposits = enable;
-    }
-
-    function energyDeposit(
-        uint256 amount,
-        string calldata guid,
-        string calldata planetId
-    ) external payable {
-        BlackMatter sp = getBlackMatter();
-
-        require(
-            enableEnergyDepositDeposits,
-            "Depositing energy tokens is disabled"
-        );
-        require(sp.balanceOf(msg.sender) >= amount, "Not enough tokens.");
-        require(
-            sp.allowance(msg.sender, address(this)) >= amount,
-            "Approve transaction first"
-        );
-        require(msg.value == bnbFee, "Not send enough BNB's");
-
-        energyDeposits[guid] = Transaction({
-            guid: guid,
-            owner: msg.sender,
-            createdTimestamp: block.timestamp,
-            amount: amount,
-            planetId: planetId,
-            exists: true,
-            txType: "deposit",
-            fee: 0
-        });
-
-        energyDepositsMap[planetId].push(guid);
-        sp.transferFrom(msg.sender, feeWallet, amount);
-        feeWallet.transfer(bnbFee);
-    }
-
-    ////////// END ENERGY DEPOSITS /////////////
 
     ////////// BKM DEPOSITS /////////////
     function getBkmTransactionMapCount(string calldata guid)
